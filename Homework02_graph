@@ -1,0 +1,75 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, roc_curve, auc, classification_report
+
+# 데이터 불러오기
+data_path = r"..\data\Catalunya Accidents data.csv"
+data = pd.read_csv(data_path)
+
+# 데이터 요약
+data_summary = data.describe(include='all')
+
+# 데이터 전처리 과정
+# D_BOIRA
+data['D_BOIRA'] = data['D_BOIRA'].map({"No n'hi ha": 0, "Si": 1})
+
+# D_GRAVETAT
+data['D_GRAVETAT'] = data['D_GRAVETAT'].map({'Accident greu': 1, 'Accident mortal': 2})
+
+# D_CLIMATOLOGIA
+data['D_CLIMATOLOGIA'] = data['D_CLIMATOLOGIA'].map({'Bon temps': 0, 'Pluja dèbil': 1})
+
+# D_INFLUIT_VISIBILITAT
+data['D_INFLUIT_VISIBILITAT'] = data['D_INFLUIT_VISIBILITAT'].map({'No': 0, 'Sense especificar': 1, 'Si': 2})
+
+# D_INFLUIT_VISIBILITAT를 이진 분류로 변환 (예: 0 또는 1)
+data['D_INFLUIT_VISIBILITAT'] = (data['D_INFLUIT_VISIBILITAT'] > 0).astype(int)
+
+# 필요한 특징 선택 (피해자 수만 남김)
+selected_features = ["F_VICTIMES", "C_VELOCITAT_VIA", "D_BOIRA", "D_GRAVETAT", "D_CLIMATOLOGIA", "D_INFLUIT_VISIBILITAT"]
+data = data[selected_features]
+
+# 데이터 전처리 - 필요한 특징 선택 및 누락된 값 처리
+selected_features = ["F_VICTIMES", "C_VELOCITAT_VIA", "D_BOIRA", "D_GRAVETAT", "D_CLIMATOLOGIA", "D_INFLUIT_VISIBILITAT"]
+data = data[selected_features]
+data = data.fillna(data.mean())
+
+# "results" 디렉토리 생성
+os.makedirs("results", exist_ok=True)
+
+# 숫자형 데이터만 선택하여 상관관계 분석 및 히트맵
+numeric_data = data.select_dtypes(include='number')
+correlation_matrix = numeric_data.corr()
+plt.figure(figsize=(12, 10))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)
+plt.title('Correlation Heatmap')
+
+# 파일 경로 지정
+heatmap_filepath = "results/correlation_heatmap.png"
+
+# 파일 저장
+plt.savefig(heatmap_filepath)
+plt.close()  # 플롯 창 닫기
+
+# 시각화 그래프 - 사고 심각성 분포
+plt.figure(figsize=(10, 6))
+sns.countplot(data['F_VICTIMES'])
+plt.title('Distribution of Accident Severity')
+plt.xlabel('Severity (0: No impact, 1: Impact without specifying, 2: Impact)')
+plt.ylabel('Count')
+
+# 파일 경로 지정
+distribution_filepath = "results/severity_distribution.png"
+
+# 파일 저장
+plt.savefig(distribution_filepath)
+plt.close()  # 플롯 창 닫기
+
+# 두 파일의 경로 출력
+print("Correlation Heatmap saved at:", heatmap_filepath)
+print("Severity Distribution saved at:", distribution_filepath)
